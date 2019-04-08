@@ -3,7 +3,7 @@ function demo_tracker()
 % TODO: put name oy four tracker here
 tracker_name = 'cft';
 % TODO: select a sequence you want to test on
-sequence = 'bolt1';
+sequence = 'ball1';
 % TODO: give path to the dataset folder
 dataset_path = './resources/vot';
 

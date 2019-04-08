@@ -10,7 +10,7 @@ function [state, location] = cft_update(state, I, varargin)
     y_c = state.bbox_t(2)+state.bbox_t(4)/2;
 
     % get localization patch
-    L = rgb2gray(get_patch(I, [x_c y_c], 1, [state.bbox_t(3) state.bbox_t(4)]));
+    L = double(rgb2gray(get_patch(I, [x_c y_c], 1, [state.bbox_t(3) state.bbox_t(4)]))) .* state.Cw;
 
     % precalculate
     Lf = fft2(L);

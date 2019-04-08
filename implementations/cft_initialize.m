@@ -6,8 +6,11 @@ function [state, location] = cft_initialize(I, region, varargin)
     % get target bounding box
     bbox_t = [bbox_s(1)-bbox_s(3) bbox_s(2)-bbox_s(4) bbox_s(3)*3 bbox_s(4)*3];
     
+    % get cosine window
+    Cw = create_cos_window([bbox_t(3) bbox_t(4)]);
+    
     % get target patch
-    P = rgb2gray(get_patch(I, [bbox_t(1)+bbox_t(3)/2 bbox_t(2)+bbox_t(4)/2], 1, [bbox_t(3) bbox_t(4)]));
+    P = double(rgb2gray(get_patch(I, [bbox_t(1)+bbox_t(3)/2 bbox_t(2)+bbox_t(4)/2], 1, [bbox_t(3) bbox_t(4)]))) .* Cw;
     
     % get ground truth
     G = create_gauss_peak([bbox_t(3) bbox_t(4)], 1, 0.00001);
@@ -25,6 +28,7 @@ function [state, location] = cft_initialize(I, region, varargin)
     state.alpha = 0.01;    
     state.Hfc = Hfc;
     state.Gf = Gf;
+    state.Cw = Cw;
     state.bbox_s = bbox_s;
     state.bbox_t = bbox_t;
     

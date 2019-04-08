@@ -12,6 +12,8 @@ y2 = gt(8);
 bbox_s = get_search_bbox(gt);
 bbox_t = [x1-bbox_s(3) y1-bbox_s(4) bbox_s(3)*3 bbox_s(4)*3];
 
+Cw = create_cos_window([bbox_t(3) bbox_t(4)]);
+
 % get patch
 x_c = bbox_t(1)+bbox_t(3)/2;
 y_c = bbox_t(2)+bbox_t(4)/2;
@@ -20,6 +22,8 @@ L = get_patch(I2, [x_c y_c], 1, [bbox_t(3) bbox_t(4)]);
 
 % get ground truth
 G = create_gauss_peak([bbox_t(3) bbox_t(4)], 1, 0.00001);
+
+
 
 figure(1); clf;
 subplot(1, 3, 1); imshow(I1); axis([0 size(I1, 2) 0 size(I1, 1)]); axis on;
@@ -38,7 +42,7 @@ rectangle('Position',bbox_s, 'LineWidth',2, 'EdgeColor','g');
 drawnow;
 hold off;
 
-subplot(1, 3, 3); imshow(P);
+subplot(1, 3, 3); imshow(Cw);
 
 Pf = fft2(P);
 Pfc = conj(Pf);
