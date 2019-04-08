@@ -9,13 +9,13 @@ x2 = gt(7);
 y2 = gt(8);
 
 % search & target bounding box
-bbox_s = [x1 y1 x2-x1+1 y2-y1+1];
+bbox_s = get_search_bbox(gt);
 bbox_t = [x1-bbox_s(3) y1-bbox_s(4) bbox_s(3)*3 bbox_s(4)*3];
 
 % get patch
 x_c = bbox_t(1)+bbox_t(3)/2;
 y_c = bbox_t(2)+bbox_t(4)/2;
-P = get_patch(I1, [x_c y_c], 1, [bbox_t(3) bbox_t(4)]);
+P = get_patch(I1, [bbox_t(1)+bbox_t(3)/2 bbox_t(2)+bbox_t(4)/2], 1, [bbox_t(3) bbox_t(4)]);
 L = get_patch(I2, [x_c y_c], 1, [bbox_t(3) bbox_t(4)]);
 
 % get ground truth
@@ -53,3 +53,20 @@ subplot(1, 3, 3); imagesc(Gp); axis([0 bbox_t(3) 0 bbox_t(4)]); axis square;
 [y, x] = find(Gp==max(max(Gp)));
 
 subplot(1, 3, 2); hold on; plot(x+bbox_t(1), y+bbox_t(2), 'rx', 'MarkerSize', 20); hold off;
+
+function bbox_s = get_search_bbox(region)
+    % If the provided region is a polygon ...
+    if numel(region) > 4
+        x1 = round(min(region(1:2:end)));
+        x2 = round(max(region(1:2:end)));
+        y1 = round(min(region(2:2:end)));
+        y2 = round(max(region(2:2:end)));
+        region = round([x1, y1, x2 - x1, y2 - y1]);
+    else
+        region = round([round(region(1)), round(region(2)), ... 
+            round(region(1) + region(3)) - round(region(1)), ...
+            round(region(2) + region(4)) - round(region(2))]);
+    end;
+
+    bbox_s = region;
+end
