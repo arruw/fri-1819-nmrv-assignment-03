@@ -1,0 +1,107 @@
+\documentclass[runningheads]{llncs}
+%
+\usepackage{graphicx}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{siunitx}
+\usepackage{csvsimple}
+% 
+\begin{document}
+% 
+\title{Report 2: Mean-Shift Tracker}
+\author{Matjaž Mav}
+\institute{Advanced Computer Vision Methods}
+%
+\maketitle              % typeset the header of the contribution
+%
+ 
+\section{Introduction}
+In this exercise we had two tasks. First we had to implement mean-shift algorithm and test it on 2D intensity field with different parameters. And for the second one we had to implement mean-shift based tracker and test it on few image sequence from VOT (\url{http://www.votchallenge.net/}) with different parameters.
+
+\section{Mean-Shift}
+Mean-shift algorithm is used to iteratively find local maximum on some 2D intensity field from given starting point. Our task ware to implement it and find how different parameters effect conversion time (in steps) and accuracy.
+
+We prepared interactive visualization of the mean-shift algorithm in file \textit{"implementations/meanshift\_visualize.m"}. This visualization first generate random intensity field and then let user click on the image to select starting position.
+
+Then we compared mean-shift algorithm on different Gaussian and Epanechnikov kernels, kernel sizes and starting points. This comparison is visualized on the figure \ref{img_meanshift} (based on given intensity field) and the figure \ref{img_meanshift_random} (based on random generated intensity field). From this two visualizations we can make few observations about mean-shift algorithm:
+\begin{enumerate}
+    \item The algorithm do not always find global maximum, sometimes it find local maximum and sometimes it is trapped on the saddle between few maximums.
+    \item With bigger neighborhood region (bigger kernel) the probability of finding global maximum is bigger.
+    \item Bigger kernel effects also on number of steps till algorithm converges.
+    \item Gaussian kernel results in smoother conversion path compared to the Epanechnikov kernel, also conversion time (in steps) seems to be faster (in figure \ref{img_meanshift}). But it also can be trapped in state  that won't  converge (in figure \ref{img_meanshift_random}), so we need to limit the maximum number of the steps. In our case we limited mean-shift algorithm with 20 steps.
+\end{enumerate}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.2\textwidth]{results/mean-shift-comparison.png}
+    \caption{Given intensity field - Comparison of mean-shift algorithm between the Gaussian and the Epanechnikov kernel respective to the kernel size and in case of Gaussian the sigma parameter. At the bottom left corner of each tile is its label in the following format:\newline \textit{\textless kernel-name\textgreater-\textless kernel-size\textgreater-\textless sigma\textgreater}
+    \newline \textit{Red dot} ... starting point
+    \newline \textit{Number} ... number of steps till conversion (limited to 20)
+    \newline \textit{Black line} ... conversion path
+    \newline \textit{Red cross} ... conversion point}
+    \label{img_meanshift}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1.2\textwidth]{results/mean-shift-comparison-random.png}
+    \caption{Random generated intensity field - Comparison of mean-shift algorithm between the Gaussian and the Epanechnikov kernel respective to the kernel size and in case of Gaussian the sigma parameter. At the bottom left corner of each tile is its label in the following format:\newline \textit{\textless kernel-name\textgreater-\textless kernel-size\textgreater-\textless sigma\textgreater}
+    \newline \textit{Red dot} ... starting point
+    \newline \textit{Number} ... number of steps till conversion (limited to 20)
+    \newline \textit{Black line} ... conversion path
+    \newline \textit{Red cross} ... conversion point}
+    \label{img_meanshift_random}
+\end{figure}
+
+\newpage
+\section{Mean-Shift Tracker}
+
+Our next task was the implementation of the mean-shift based tracker. To make it simpler we used Epanechnikov kernel for weighting the intensity field of each tracking region.
+
+Because our submission is limited in size, we prepared one video for each image sequence that we picked. In order to be clearer where the tracker failed, we rendered videos at 15 frames per second. This videos can be found here: \url{https://photos.app.goo.gl/X7AAanHARdkHYvHD6}
+
+\subsection{Selected VOT image sequences}
+
+We tested our tracker on a 5 different image sequences, all of the tests ware run on the previously found best parameter set (\textit{Bins=3, Eps=1e-7, Alpha=0, Sigma=0.2}). How did we found best parameter set is described in the section \ref{sec_ms_parameters}.
+\begin{enumerate}
+\item \textbf{ball1} This image sequence seemed easy to track because the ball moves relatively slow, the background color is constant and in contrast to the ball. On this sequence, with the optimal set of the parameters, our tracker didn't failed. (Source: \textit{VOT 2014, ball})
+\item \textbf{ball2} Next we picked another image sequence that tracks ball. But this time, the ball moved faster, the background doesn't have constant color, even the background color is rather similar to the ball. On this sequence, with the optimal set of the parameters, our tracker failed 5 times. (Source: \textit{VOT 2018, ball1})
+\item \textbf{bolt1} This image sequence tracks Usain Bolt while sprinting. Bolt is dressed in white shirt and in the background is red sand, grass and other competitors. Some of the competitors are dressed similarly. Along the track, there are some black speakers that also disturb our tracker. Therefore Usain Bolt is not always clearly in contrast to the background. Surprisingly, our tracker, with the optimal set of the parameters, didn't failed. (Source: \textit{VOT 2018, bolt2})
+\item \textbf{car1} This image sequence is tracking the car from the followers car behind in traffic. It seems that image sequence is manually taken from inside of the followers car, because image is very unstable, also water droplets are visible on the windshield. Additionally, most of the image colors seems unsaturated and blueish, except for the rear red lights. This image sequence turned out to be hard to track with our tracker. With optimal set of the parameters our tracker failed 5 times. But unfortunately we weren't able to render video with this set of the parameters. We had to drop mean-shift conversion limitation from 20 to 10 steps, in order to be able to render video. Whit this set of the parameters our tracker failed 18 times. (Source: \textit{VOT 2018, car1})
+\item \textbf{hand} This image sequence tracks a waving hand in front of the person, sitting in the office. This image sequences first seemed easier then \textbf{car1}, because images contains more colors, but it turned out that in this case, our tracker performed even worse. On this image sequence, with optimal set of the parameters, our tracker failed 10 times. (Source: \textit{VOT 2018, hand})
+\end{enumerate}
+
+In case of \textbf{ball2}, \textbf{car1} and \textbf{hand} image sequences, we could try using back\-ground-weighted histograms. With this approach our tracker would use features that are common only to the tracking object and not to its background.
+
+\subsection{Testing different parameters}
+\label{sec_ms_parameters}
+
+On all of the previously described sequences, we tested mean-shift tracker with different set of the parameters:
+
+\begin{enumerate}
+    \item \textbf{Bins} - Number of color histogram bins. We tested following values: 3, 7, 11 and 15. On lecture we pointed out that we usually use 16 bins, but in our case with less bins our tracker performed better. Also we observed that with less bins we can achieve higher FPS.
+    \item \textbf{Eps} - Some small value that prevents extremely large values in the calculated intensity field. We tested following values: 1e-10, 1e-7 and 1e-4.
+    \item \textbf{Alpha} - Constant value between 0 and 1 that define how model is updated on each frame. \textit{Alpha=0} means means that we do not update model. We tested following values: 0, 0.001 and 0.01. From our tests we can observe that lower value is usually better.
+    \item \textbf{Sigma} - Epanechnikov kernel parameter, used to extract color histograms. We tested following values 0.1, 0.2 and 0.4.
+\end{enumerate}
+
+Implementation of the tests is located in file \textit{"implementations/ms\_track\-er\_tests.m"}.
+
+In total we made 540 tests on all 5 image sequences. In table \ref{tbl_ms_tracker_performance} we list only top 3 parameter sets for each image sequence. All other results are listed in file \textit{"results/ms\_tracker\_comparison.csv"}. From this results we picked parameter set that seemed to work best with our selected image sequences, that is: \textit{\{Bins=3, Eps=1e-7, Alpha=0, Sigma=0.2\}}.
+
+\begin{table}
+\centering
+\csvautotabular{./results/ms_tracker_comparison_top3.csv}
+\caption{Performance comparison of the mean-shift tracker between 5 different image sequences (\textit{Sequence}) and corresponding parameter set (\textit{Bins, Eps, Alpha, Sigma}). Performance is measured as failures per frame (\textit{FPF}) and frames per second (\textit{FPS}). This table contains only the top 3 parameter sets for each of the selected image sequence (top 15 out of 540).}
+\label{tbl_ms_tracker_performance}
+\end{table}
+
+\section{Conclusion}
+We showed that mean-shift tracker is simple tracking algorithm, that in some cases can performs well. The accuracy and speed of the tracking highly relates to used parameters and also on the tracking object and its background. Mean-shift tracker achieves better accuracy if the object is in contrast to the background.
+
+Mean-shift tracker can also be used in real-time scenarios, in table \ref{tbl_ms_tracker_performance} we can see that the tracker achieved between 30 and 160 FPS. So in some cases we could track five different targets in real-time.
+
+
+\end{document}
