@@ -1,7 +1,7 @@
 function demo_tracker()
 
 % TODO: put name oy four tracker here
-tracker_name = 'cft';
+tracker_name = 'mosse';
 % TODO: select a sequence you want to test on
 sequence = 'ball1';
 % TODO: give path to the dataset folder
@@ -10,8 +10,9 @@ dataset_path = './resources/vot';
 params = struct;
 params.sigma = 2;           % gaussian sigma
 params.peak = 100;          % gaussian peak
-params.s2tr = 1.5;          % search to target region ration
-params.alpha = 0.125;       % learning rate
+params.s2tr = 2;          % search to target region ration
+params.alpha = 0.1;       % learning rate
+params.psr = 0.07;          % min peak to sidelobe ration
 
 use_reinitialization = true;
 skip_after_fail = 5;
@@ -43,6 +44,7 @@ n_failures = 0;
 
 figure(1); clf;
 frame = 1;
+tic;
 while frame <= numel(img_dir)
     
     % read frame
@@ -50,6 +52,7 @@ while frame <= numel(img_dir)
     
     if frame == start_frame
         % initialize tracker
+        clf;
         tracker = initialize(img, gt(frame,:), params);
         bbox = gt(frame, :);
     else
@@ -58,15 +61,25 @@ while frame <= numel(img_dir)
     end
     
     % show image
+%     subplot(4, 4, 1:12);
+%     cla;
     imshow(img);
     hold on;
     rectangle('Position',bbox, 'LineWidth',2, 'EdgeColor','y');
     % show current number of failures & frame number
-    text(12, 15, sprintf('Failures: %d\nFrame: #%d', n_failures, frame), 'Color','w', ...
+    text(12, 15, sprintf('Failures: %d\nFrame: #%d\nFPS: %d', n_failures, frame, round(frame/toc)), 'Color','w', ...
         'FontSize',10, 'FontWeight','normal', ...
         'BackgroundColor','k', 'Margin',1);    
     hold off;
     drawnow;
+    
+%     subplot(4, 4, 13:16);
+%     hold on;
+%     cla;
+%     plot(1:(frame-start_frame+1), tracker.m, 'b'); ylim([0 params.peak]);
+%     plot([1 frame-start_frame+1], [params.peak*params.psr params.peak*params.psr], 'r'); ylim([0 params.peak]);
+%     hold off;
+%     drawnow;
     
     % detect failures and reinit
     if use_reinitialization

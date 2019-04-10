@@ -1,4 +1,4 @@
-function [state, location] = cft_initialize(I, region, varargin)
+function [state, location] = mosse_initialize(I, region, varargin)
 
     params = varargin{1};
 
@@ -23,15 +23,18 @@ function [state, location] = cft_initialize(I, region, varargin)
     Gf = fft2(G);
     
     % calculate filter
-    Hfc = (Gf .* Pfc) ./ (Pf .* Pfc);
-
+    A = (Gf .* Pfc);
+    B = (Pf .* Pfc);
+    
     % construct state
     state = struct;  
-    state.Hfc = Hfc;
+    state.A = A;
+    state.B = B;
     state.Gf = Gf;
     state.Cw = Cw;
     state.bbox_s = bbox_s;
     state.bbox_t = bbox_t;
+    state.m = [params.peak];
     
     % location
     location = bbox_s;
