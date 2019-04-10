@@ -7,6 +7,12 @@ sequence = 'ball1';
 % TODO: give path to the dataset folder
 dataset_path = './resources/vot';
 
+params = struct;
+params.sigma = 2;           % gaussian sigma
+params.peak = 100;          % gaussian peak
+params.s2tr = 1.5;          % search to target region ration
+params.alpha = 0.125;       % learning rate
+
 use_reinitialization = true;
 skip_after_fail = 5;
 
@@ -44,26 +50,21 @@ while frame <= numel(img_dir)
     
     if frame == start_frame
         % initialize tracker
-        tracker = initialize(img, gt(frame,:));
+        tracker = initialize(img, gt(frame,:), params);
         bbox = gt(frame, :);
     else
         % update tracker (target localization + model update)
-        [tracker, bbox] = update(tracker, img);
+        [tracker, bbox] = update(tracker, img, params);
     end
     
     % show image
     imshow(img);
     hold on;
     rectangle('Position',bbox, 'LineWidth',2, 'EdgeColor','y');
-    % show current number of failures
-    text(12, 15, sprintf('Failures: %d', n_failures), 'Color','w', ...
+    % show current number of failures & frame number
+    text(12, 15, sprintf('Failures: %d\nFrame: #%d', n_failures, frame), 'Color','w', ...
         'FontSize',10, 'FontWeight','normal', ...
-        'BackgroundColor','k', 'Margin',1);
-    % show frame number
-    text(12, 35, sprintf('Frame: #%d', frame), 'Color','w', ...
-        'FontSize',10, 'FontWeight','normal', ...
-        'BackgroundColor','k', 'Margin',1);
-    
+        'BackgroundColor','k', 'Margin',1);    
     hold off;
     drawnow;
     

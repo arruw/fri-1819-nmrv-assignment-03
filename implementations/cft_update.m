@@ -1,5 +1,7 @@
 function [state, location] = cft_update(state, I, varargin)
 
+	params = varargin{1};
+
     % state.Hfc = Hfc;
     % state.Gf = Gf;
     % state.bbox_s = bbox_s;
@@ -27,7 +29,7 @@ function [state, location] = cft_update(state, I, varargin)
     dy = y_n - y_c;
     
     % update state
-    state.Hfc = (1-state.alpha)*state.Hfc + state.alpha*((state.Gf .* Lfc) ./ (Lf .* Lfc));
+    state.Hfc = (1-params.alpha)*state.Hfc + params.alpha*((state.Gf .* Lfc) ./ (Lf .* Lfc));
     state.bbox_s = [state.bbox_s(1)+dx state.bbox_s(2)+dy state.bbox_s(3:4)];
     state.bbox_t = [state.bbox_t(1)+dx state.bbox_t(2)+dy state.bbox_t(3:4)];
 

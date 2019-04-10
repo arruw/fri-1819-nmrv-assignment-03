@@ -1,10 +1,12 @@
 function [state, location] = cft_initialize(I, region, varargin)
 
+    params = varargin{1};
+
     % get search bounding box
     bbox_s = get_search_bbox(region);
     
     % get target bounding box
-    bbox_t = [bbox_s(1)-bbox_s(3) bbox_s(2)-bbox_s(4) bbox_s(3)*3 bbox_s(4)*3];
+    bbox_t = round([bbox_s(1)-bbox_s(3)*(params.s2tr-1)/2 bbox_s(2)-bbox_s(4)*(params.s2tr-1)/2 bbox_s(3)*params.s2tr bbox_s(4)*params.s2tr]);
     
     % get cosine window
     Cw = create_cos_window([bbox_t(3) bbox_t(4)]);
@@ -13,7 +15,7 @@ function [state, location] = cft_initialize(I, region, varargin)
     P = double(rgb2gray(get_patch(I, [bbox_t(1)+bbox_t(3)/2 bbox_t(2)+bbox_t(4)/2], 1, [bbox_t(3) bbox_t(4)]))) .* Cw;
     
     % get ground truth
-    G = create_gauss_peak([bbox_t(3) bbox_t(4)], 1, 0.00001);
+    G = create_gauss_peak([bbox_t(3) bbox_t(4)], params.peak, params.sigma);
     
     % precalculate
     Pf = fft2(P);
@@ -24,8 +26,7 @@ function [state, location] = cft_initialize(I, region, varargin)
     Hfc = (Gf .* Pfc) ./ (Pf .* Pfc);
 
     % construct state
-    state = struct;
-    state.alpha = 0.01;    
+    state = struct;  
     state.Hfc = Hfc;
     state.Gf = Gf;
     state.Cw = Cw;
