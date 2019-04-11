@@ -1,12 +1,7 @@
 function [state, location, m] = mosse_update(state, I, varargin)
 
-	params = varargin{1};
-
-    % state.Hfc = Hfc;
-    % state.Gf = Gf;
-    % state.bbox_s = bbox_s;
-    % state.bbox_t = bbox_t;
-
+	params = mosse_params();
+    
     % get current center
     x_c = state.bbox_t(1)+state.bbox_t(3)/2;
     y_c = state.bbox_t(2)+state.bbox_t(4)/2;
@@ -20,8 +15,10 @@ function [state, location, m] = mosse_update(state, I, varargin)
     
     % get next center
     Gp = ifft2(Lf .* (state.A ./ state.B));
-    [y_n, x_n] = find(Gp==max(max(Gp)));
-    m = Gp(y_n, x_n);
+    %[y_n, x_n] = find(Gp==max(max(Gp)));
+    [m, mi] = max(Gp(:));
+    [y_n, x_n] = ind2sub(size(Gp), mi);
+    %m = Gp(y_n, x_n);
     x_n = x_n + state.bbox_t(1);
     y_n = y_n + state.bbox_t(2);
            
@@ -33,11 +30,11 @@ function [state, location, m] = mosse_update(state, I, varargin)
     if m >= params.peak*params.psr;
         alpha = params.alpha * m/params.peak;
         state.A = (1-alpha)*state.A + alpha*(state.Gf .* Lfc);
-        state.B = (1-alpha)*state.B + alpha*(Lf .* Lfc);
+        state.B = (1-alpha)*state.B + alpha*((Lf .* Lfc)+params.lambda);
     end
 
     state.bbox_s = [state.bbox_s(1)+dx state.bbox_s(2)+dy state.bbox_s(3:4)];
-        state.bbox_t = [state.bbox_t(1)+dx state.bbox_t(2)+dy state.bbox_t(3:4)];
+    state.bbox_t = [state.bbox_t(1)+dx state.bbox_t(2)+dy state.bbox_t(3:4)];
     state.m = [state.m m];
     
     % location

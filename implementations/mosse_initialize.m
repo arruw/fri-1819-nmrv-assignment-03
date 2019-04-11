@@ -1,6 +1,6 @@
 function [state, location] = mosse_initialize(I, region, varargin)
 
-    params = varargin{1};
+    params = mosse_params();
 
     % get search bounding box
     bbox_s = get_search_bbox(region);
@@ -24,7 +24,7 @@ function [state, location] = mosse_initialize(I, region, varargin)
     
     % calculate filter
     A = (Gf .* Pfc);
-    B = (Pf .* Pfc);
+    B = (Pf .* Pfc) + params.lambda;
     
     % construct state
     state = struct;  

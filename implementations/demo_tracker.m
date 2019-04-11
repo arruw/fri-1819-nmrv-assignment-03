@@ -7,12 +7,7 @@ sequence = 'ball1';
 % TODO: give path to the dataset folder
 dataset_path = './resources/vot';
 
-params = struct;
-params.sigma = 2;           % gaussian sigma
-params.peak = 100;          % gaussian peak
-params.s2tr = 2;          % search to target region ration
-params.alpha = 0.1;       % learning rate
-params.psr = 0.07;          % min peak to sidelobe ration
+params = mosse_params();
 
 use_reinitialization = true;
 skip_after_fail = 5;
@@ -52,12 +47,12 @@ while frame <= numel(img_dir)
     
     if frame == start_frame
         % initialize tracker
-        clf;
-        tracker = initialize(img, gt(frame,:), params);
+        cla;
+        tracker = initialize(img, gt(frame,:));
         bbox = gt(frame, :);
     else
         % update tracker (target localization + model update)
-        [tracker, bbox] = update(tracker, img, params);
+        [tracker, bbox] = update(tracker, img);
     end
     
     % show image
@@ -65,9 +60,13 @@ while frame <= numel(img_dir)
 %     cla;
     imshow(img);
     hold on;
-    rectangle('Position',bbox, 'LineWidth',2, 'EdgeColor','y');
+    color = 'y';
+    if tracker.m(end) < params.peak*params.psr
+        color = 'r';
+    end
+    rectangle('Position',bbox, 'LineWidth',2, 'EdgeColor',color);
     % show current number of failures & frame number
-    text(12, 15, sprintf('Failures: %d\nFrame: #%d\nFPS: %d', n_failures, frame, round(frame/toc)), 'Color','w', ...
+    text(12, 15, sprintf('Failures: %d\nFrame: #%d\nFPS: %d\nPSR: %d', n_failures, frame, round(frame/toc), round(tracker.m(end))), 'Color','w', ...
         'FontSize',10, 'FontWeight','normal', ...
         'BackgroundColor','k', 'Margin',1);    
     hold off;

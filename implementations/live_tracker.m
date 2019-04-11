@@ -1,17 +1,5 @@
-try
-    stop(vidObj);
-    delete(vidObj);
-catch
-    clear all;
-end;
-    
-params = struct;
-params.sigma = 2;           % gaussian sigma
-params.peak = 100;          % gaussian peak
-params.s2tr = 5;          % search to target region ration
-params.alpha = 0.1;       % learning rate
-params.psr = 0.30;
-
+% YUY2_1280x720
+% YUY2_640x360
 vidObj = videoinput('linuxvideo', 1, 'YUY2_640x360');
 vidObj.ReturnedColorspace = 'rgb';
 vidObj.Timeout = 500;
@@ -19,51 +7,57 @@ triggerconfig(vidObj, 'manual');
 
 start(vidObj)
 
-global init;
-init = true;
+global flag_stop flag_init;
+flag_init = true;
+flag_stop = false;
 
 frame = 1;
 while true
-    I = getsnapshot(vidObj);
-    
-    if init
-        figure(1); clf;
-        subplot(4, 4, 1:12);
-        imagesc(I);
-        uicontrol('String', 'Init', 'Callback', @initialize);
-        drawnow;
-        frame = 1;
-        init = false;
-        bbox = getrect;
-        tic;
-        tracker = mosse_initialize(I, bbox, params); 
-    else
-       [tracker, bbox] = mosse_update(tracker, I, params); 
+    if flag_stop
+       break; 
     end
     
-    subplot(4, 4, 1:12);
+    I = getsnapshot(vidObj);
+    
+    if flag_init
+        figure(1); clf;
+        subplot(7, 1, 1:6);
+        imagesc(I);
+        uicontrol('Position', [5 5 100 20], 'String', 'Init', 'Callback', @initialize_f);
+        uicontrol('Position', [110 5 100 20], 'String', 'Stop', 'Callback', @stop_f);
+        drawnow;
+        frame = 1;
+        flag_init = false;
+        bbox = getrect;
+        tic;
+        tracker = mosse_initialize(I, bbox); 
+    else
+       [tracker, bbox] = mosse_update(tracker, I); 
+    end
+    
+    subplot(7, 1, 1:6); 
     hold on;
     if mod(frame, 20) == 0
        cla;
     end
-    imagesc(I);
+    imagesc(I); 
     color = 'y';
     if tracker.m(end) < params.peak*params.psr;
         color = 'r';
     end
     rectangle('Position',bbox, 'LineWidth',2, 'EdgeColor',color);
-    text(12, 15, sprintf('Frame: #%d\nFPS: %d', frame, round(frame/toc)), 'Color','w', ...
+    text(5, 35, sprintf('Frame: #%d\nFPS: %d', frame, round(frame/toc)), 'Color','w', ...
         'FontSize',10, 'FontWeight','normal', ...
         'BackgroundColor','k', 'Margin',1);   
     hold off;
         
-    subplot(4, 4, 13:16);
+    subplot(7, 1, 7);
     hold on;
     if mod(frame, 20) == 0
        cla;
     end
-    plot(1:frame, tracker.m, 'b'); ylim([0 params.peak]);
-    plot([1 frame], [params.peak*params.psr params.peak*params.psr], 'r'); ylim([0 params.peak]);
+    plot(1:frame, tracker.m, 'b'); ylim([0 params.peak*0.2]);
+    plot([1 frame], [params.peak*params.psr params.peak*params.psr], 'r'); ylim([0 params.peak*0.2]);
     hold off;
     drawnow;
     
@@ -72,8 +66,14 @@ end
 
 stop(vidObj);
 delete(vidObj);
+clear all;
 
-function initialize(src, evt)
-    global init;
-    init = true;
+function initialize_f(src, evt)
+    global flag_init;
+    flag_init = true;
+end
+
+function stop_f(src, evt)
+    global flag_stop;
+    flag_stop = true;
 end
