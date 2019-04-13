@@ -1,6 +1,4 @@
-function [state, location, m] = mosse_update(state, I, varargin)
-
-	params = mosse_params();
+function [state, location] = mosse_update(state, I, params)
     
     % get current center
     x_c = state.bbox_t(1)+state.bbox_t(3)/2;
@@ -15,10 +13,8 @@ function [state, location, m] = mosse_update(state, I, varargin)
     
     % get next center
     Gp = ifft2(Lf .* (state.A ./ state.B));
-    %[y_n, x_n] = find(Gp==max(max(Gp)));
     [m, mi] = max(Gp(:));
     [y_n, x_n] = ind2sub(size(Gp), mi);
-    %m = Gp(y_n, x_n);
     x_n = x_n + state.bbox_t(1);
     y_n = y_n + state.bbox_t(2);
            

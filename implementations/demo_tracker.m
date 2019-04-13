@@ -7,7 +7,13 @@ sequence = 'ball1';
 % TODO: give path to the dataset folder
 dataset_path = './resources/vot';
 
-params = mosse_params();
+params = struct;
+params.sigma = 2;
+params.peak = 100;
+params.s2tr = 2;
+params.alpha = 0.125;
+params.psr = 0.05;
+params.lambda = 1e-5;
 
 use_reinitialization = true;
 skip_after_fail = 5;
@@ -48,11 +54,11 @@ while frame <= numel(img_dir)
     if frame == start_frame
         % initialize tracker
         cla;
-        tracker = initialize(img, gt(frame,:));
+        tracker = initialize(img, gt(frame,:), params);
         bbox = gt(frame, :);
     else
         % update tracker (target localization + model update)
-        [tracker, bbox] = update(tracker, img);
+        [tracker, bbox] = update(tracker, img, params);
     end
     
     % show image

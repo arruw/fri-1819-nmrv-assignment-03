@@ -1,6 +1,4 @@
-function [state, location] = mosse_initialize(I, region, varargin)
-
-    params = mosse_params();
+function [state, location] = mosse_initialize(I, region, params)
 
     % get search bounding box
     bbox_s = get_search_bbox(region);

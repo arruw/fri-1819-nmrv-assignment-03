@@ -11,6 +11,14 @@ global flag_stop flag_init;
 flag_init = true;
 flag_stop = false;
 
+params = struct;
+params.sigma = 2;
+params.peak = 100;
+params.s2tr = 2;
+params.alpha = 0.125;
+params.psr = 0.05;
+params.lambda = 1e-5;
+
 frame = 1;
 while true
     if flag_stop
@@ -30,9 +38,9 @@ while true
         flag_init = false;
         bbox = getrect;
         tic;
-        tracker = mosse_initialize(I, bbox); 
+        tracker = mosse_initialize(I, bbox, params); 
     else
-       [tracker, bbox] = mosse_update(tracker, I); 
+       [tracker, bbox] = mosse_update(tracker, I, params); 
     end
     
     subplot(7, 1, 1:6); 
