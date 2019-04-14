@@ -7,6 +7,7 @@
 \usepackage{listings}
 \usepackage{siunitx}
 \usepackage{csvsimple}
+\usepackage{subcaption}
 % 
 \begin{document}
 % 
@@ -21,64 +22,133 @@
 In this exercise we had task to implement correlation filter tracker and then integrate with the \textit{Tracking toolkit lite} \footnote{\url{https://github.com/alanlukezic/tracking-toolkit-lite}}. Additionally we implemented MOSSE tracker and some of our own ideas. At the end we performed some analysis.
 
 \section{Correlation Filter Tracking}
-The idea behind correlation filter tracking is to find filter that ideally correlates with an target. Ideal correlation is represented as Gaussian peak in the center of the target. And after we compute initial filter, we want to localize target on the next frame and slowly update filter. Update is required so that filter can adjust to the change of the target appearance. All of the computation was performed in the frequency-domain so computation is relatively fast.
+The idea behind correlation filter tracking is to find filter that ideally correlates with an target. Ideal correlation is represented as Gaussian peak in the center of the target. And after we compute initial filter, we want to localize target on the next frame and slowly update filter. Update is required so that filter can adjust to the change of the target appearance. All of the computation was performed in the frequency-domain so the computation can be performed above real-time, in some case our MOSSE tracker can reach up to 1400 FPS (table \ref{tbl_performance_analysis}).
 
 \subsection{Parameters}
 Here are described key three parameters used in our tracker: 
 \begin{enumerate}
     \item \textbf{\textit{sigma}} - Gaussian function parameter, that defines how steep the Gaussian peak is. With low value of this parameter ($< 1$), our tracker just bounce around, if we increase it, tracking get smoother.
+    \item \textbf{\textit{scale}} - Ratio between the target region (actual target bounding box) and the search region (some extended area around target region). This parameter effects tracking stability and speed. It also helps in case that the target disappears from the frame. With greater value of this parameter, tracker is more likely to localize the target when it appears again.
     \item \textbf{\textit{alpha}} - Update speed of the correlation filter, enables tracking target that changes appearance over the time. We implemented MOSSE tracker, so in our case we updated nominator and denominator separately. Before we actually applied this parameter, we weighted it with the PSR (Peak to Side lobe Ration) \footnote{We didn't actually calculated PSR, but instead just took the value with the highest correlation. We found out that in our case, if the value felt below 5, our tracker was very likely off the target. Eater the target disappeared or tracker failed.} measure. And if the PSR was below some limit, we completely stopped updating the correlation filter. With this we protected the filter to slowly drift off the target.
-    \item \textbf{\textit{scale}} - Ration between the target region (actual target bounding box) and the search region (some extended area around target region). This parameter effects tracking stability and speed. It also helps in case that the target disappears from the frame. With greater value of this parameter, tracker is more likely to localize the target when it appears again.  
 \end{enumerate}
 
 Additionally we can change (4) the height of the Gaussian peak (\textbf{\textit{peak = 100}}), (5) the lower PSR limit in percentage (\textbf{\textit{psr = 0.05}}) and the regularization parameter that prevents overfitting the correlation filter (\textbf{\textit{lambda = 1e-5}}).
 
 \subsection{Testing different parameters}
-From the papers, that are listed in the exercise instructions, we found that the optimal parameters for the MOSSE tracker was already found and so we started by using them ($sigma = 2$, $alpha = 0.125$, $scale = 2$). 
+From the paper\footnote{\url{http://www.cs.colostate.edu/~vision/publications/bolme_cvpr10.pdf}}, that is listed in the exercise instructions, we found that the optimal parameters for the MOSSE tracker was already found and so we started by using them ($sigma = 2$, $scale = 2$ and $alpha = 0.125$).
+
+We assumed that all of the parameters are independent, so in each experiment we fixed two of the parameters and changed one of them. At the end each experiment was visualized in the A-R plot. The final result are three figures, figure \ref{img_sigma_analysis} compares Gaussian \textit{sigma} parameter, figure \ref{img_scale_analysis} compares \textit{scale} parameter and figure \ref{img_alpha_analysis} compares \textit{alpha} parameter.
+
+From the following figures \ref{img_sigma_analysis}, \ref{img_scale_analysis} and \ref{img_alpha_analysis} we can observe, that our initial parameters ($sigma = 2$, $scale = 2$ and $alpha = 0.125$) was already set to the optimal values.
+
+\begin{figure}
+    \centering
+    \includegraphics[trim=350 35 350 45,clip,width=0.6\textwidth]{results/sigma_comparison.jpg}
+    \caption{Comparing effects of the Gaussian sigma parameter. \newline
+    The legend is represented with following notation, \textit{mosse\textunderscore\textless sigma\textgreater\textunderscore\textless scale\textgreater\textunderscore\textless alpha\textgreater}, where the first digit is whole number and all the rest are decimals.}
+    \label{img_sigma_analysis}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[trim=350 35 350 45,clip,width=0.6\textwidth]{results/scale_comparison.jpg}
+    \caption{Comparing effects of the scale parameter. \newline
+    The legend is represented with following notation, \textit{mosse\textunderscore\textless sigma\textgreater\textunderscore\textless scale\textgreater\textunderscore\textless alpha\textgreater}, where the first digit is whole number and all the rest are decimals.}
+    \label{img_scale_analysis}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[trim=350 35 350 45,clip,width=0.6\textwidth]{results/alpha_comparison.jpg}
+    \caption{Comparing effects of the alpha parameter. \newline
+    The legend is represented with following notation, \textit{mosse\textunderscore\textless sigma\textgreater\textunderscore\textless scale\textgreater\textunderscore\textless alpha\textgreater}, where the first digit is whole number and all the rest are decimals.}
+    \label{img_alpha_analysis}
+\end{figure}
 
 \subsection{Performance analysis}
 
+After we confirmed our parameters to be set to the optimal values, we performed performance analysis. The results are listed in table \ref{tbl_performance_analysis}.
+
+We can see that MOSSE tracker can perform in real-time. In average it achieves almost 600 FPS.
+
+Even that 7 sequences had 0 failures, the actual overlap between ground truth tracker position is low. In case of the sequence \textit{tunnel}, the overlap measure is one of the lowest in the analysis (0.33). We assume that we can increase overlap measure, if we implement scaling.
+
+We also noted, that MOSSE tracker is really effected by the texture and the edges. Patches that contain faces, shadows, tiles, can be tracked relatively good (image \ref{img_tracker_best_worst} example (a) and (b)). But background is also important, if the background contains sharper textures and edges, tracking usually fails (image \ref{img_tracker_best_worst} example (c) and (d)). Tracking is impossible if the object is hollow in its center, in this case we track its background.
+
+\begin{figure}
+    \centering
+
+    \begin{subfigure}{0.23\textwidth}
+        \includegraphics[trim=540 200 550 150,clip,width=\linewidth]{results/best_woman.jpg}
+        \caption{\textit{woman}}
+    \end{subfigure}
+    \hspace*{\fill}
+    \begin{subfigure}{0.23\textwidth}
+        \includegraphics[trim=450 275 725 170,clip,width=\linewidth]{results/best_sunshade.jpg}
+        \caption{\textit{sunshade}}
+    \end{subfigure}
+    \hspace*{\fill}
+    \begin{subfigure}{0.23\textwidth}
+        \includegraphics[trim=500 200 500 50,clip,width=\linewidth]{results/worst_fish2.jpg}
+        \caption{\textit{fish2}}
+    \end{subfigure}
+    \hspace*{\fill}
+    \begin{subfigure}{0.23\textwidth}
+        \includegraphics[trim=500 250 600 110,clip,width=\linewidth]{results/worst_diving.jpg}
+        \caption{\textit{diving}}
+    \end{subfigure}
+
+    \caption{Comparison between good tracking performance on sequence (a) and (b), and bad performance on sequence (c) and (d). }
+    \label{img_tracker_best_worst}
+\end{figure}
+
+
 \begin{table}
-    \begin{center}
-    \begin{tabular}{l c c c c c}
-    \hline 
-    {\bf Sequence} & {\bf Overlap} & {\bf Failures} & {\bf FPS} & {\bf F20} & {\bf Frames} \\
-    \hline 
-    ball & 0.40 & 0 & 604.89 & 4.69 & 602 \\
-    basketball & 0.46 & 5 & 290.86 & 1.32 & 725 \\
-    bicycle & 0.49 & 0 & 1327.93 & 1.36 & 271 \\
-    bolt & 0.63 & 3 & 451.45 & 0.85 & 350 \\
-    car & 0.40 & 0 & 1219.36 & 1.16 & 252 \\
-    david & 0.69 & 1 & 202.34 & 1.30 & 770 \\
-    diving & 0.32 & 2 & 279.77 & 0.75 & 219 \\
-    drunk & 0.38 & 0 & 182.45 & 1.20 & 1210 \\
-    fernando & 0.43 & 5 & 146.73 & 1.32 & 292 \\
-    fish1 & 0.37 & 13 & 912.09 & 1.53 & 436 \\
-    fish2 & 0.25 & 5 & 344.86 & 1.94 & 310 \\
-    gymnastics & 0.58 & 3 & 416.52 & 0.71 & 207 \\
-    hand1 & 0.41 & 7 & 535.32 & 0.89 & 244 \\
-    hand2 & 0.43 & 14 & 819.67 & 1.94 & 267 \\
-    jogging & 0.72 & 1 & 454.71 & 1.03 & 307 \\
-    motocross & 0.49 & 1 & 168.21 & 1.03 & 164 \\
-    polarbear & 0.50 & 0 & 638.04 & 0.92 & 371 \\
-    skating & 0.50 & 2 & 459.16 & 0.73 & 400 \\
-    sphere & 0.73 & 1 & 215.42 & 0.90 & 201 \\
-    sunshade & 0.74 & 2 & 854.10 & 1.07 & 172 \\
-    surfing & 0.41 & 0 & 1410.87 & 1.80 & 282 \\
-    torus & 0.59 & 6 & 834.31 & 1.07 & 264 \\
-    trellis & 0.65 & 3 & 549.17 & 2.18 & 569 \\
-    tunnel & 0.33 & 0 & 522.36 & 1.42 & 731 \\
-    woman & 0.77 & 1 & 638.37 & 1.18 & 597 \\
-    \hline 
-    {\bf Average} & 0.51 & 3.00 & 579.16 & 1.37 & 408.52 \\
-    \hline 
-    \end{tabular}
-    \end{center}
-    \end{table}
+\begin{center}
+\begin{tabular}{l c c c c c}
+\hline 
+{\bf Sequence} & {\bf Overlap} & {\bf Failures} & {\bf FPS} & {\bf F20} & {\bf Frames} \\
+\hline 
+ball & 0.40 & 0 & 604.89 & 4.69 & 602 \\
+basketball & 0.46 & 5 & 290.86 & 1.32 & 725 \\
+bicycle & 0.49 & 0 & 1327.93 & 1.36 & 271 \\
+bolt & 0.63 & 3 & 451.45 & 0.85 & 350 \\
+car & 0.40 & 0 & 1219.36 & 1.16 & 252 \\
+david & 0.69 & 1 & 202.34 & 1.30 & 770 \\
+diving & 0.32 & 2 & 279.77 & 0.75 & 219 \\
+drunk & 0.38 & 0 & 182.45 & 1.20 & 1210 \\
+fernando & 0.43 & 5 & 146.73 & 1.32 & 292 \\
+fish1 & 0.37 & 13 & 912.09 & 1.53 & 436 \\
+fish2 & 0.25 & 5 & 344.86 & 1.94 & 310 \\
+gymnastics & 0.58 & 3 & 416.52 & 0.71 & 207 \\
+hand1 & 0.41 & 7 & 535.32 & 0.89 & 244 \\
+hand2 & 0.43 & 14 & 819.67 & 1.94 & 267 \\
+jogging & 0.72 & 1 & 454.71 & 1.03 & 307 \\
+motocross & 0.49 & 1 & 168.21 & 1.03 & 164 \\
+polarbear & 0.50 & 0 & 638.04 & 0.92 & 371 \\
+skating & 0.50 & 2 & 459.16 & 0.73 & 400 \\
+sphere & 0.73 & 1 & 215.42 & 0.90 & 201 \\
+sunshade & 0.74 & 2 & 854.10 & 1.07 & 172 \\
+surfing & 0.41 & 0 & 1410.87 & 1.80 & 282 \\
+torus & 0.59 & 6 & 834.31 & 1.07 & 264 \\
+trellis & 0.65 & 3 & 549.17 & 2.18 & 569 \\
+tunnel & 0.33 & 0 & 522.36 & 1.42 & 731 \\
+woman & 0.77 & 1 & 638.37 & 1.18 & 597 \\
+\hline 
+{\bf Average} & 0.51 & 3.00 & 579.16 & 1.37 & 408.52 \\
+\hline 
+\end{tabular}
+\end{center}
+\caption{Performance analysis on the VOT 2014 dataset. The F2O measure compares initialization time to the average time of the following updates.}
+\label{tbl_performance_analysis}
+\end{table}
     
 
 \section{Conclusion}
+In this exercise we got familiarized with correlation filter tracking, specifically with the MOSSE tracker.
 
+We showed that for some cases MOSSE tracker can perform really good and really fast. It can track partially occluded objects. It also can detect if object disappeared and in some cases it even detect its reappearance.
 
+On the other side it is not good at tracking object without good texture. It is also not good fit for object that are hollow, object that change appearance relatively quick and objects that move quickly.
 
 \end{document}
